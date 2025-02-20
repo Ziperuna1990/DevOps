@@ -1,27 +1,25 @@
-variable "cidr_block" {
-  description = "CIDR block for the VPC"
+variable "vpc_name" {
   type        = string
+}
+
+variable "cidr_block" {
+  type        = string
+}
+
+variable "azs" {
+  type        = list(string)
 }
 
 variable "private_subnets" {
-  description = "Map of private subnets to create"
-  type = map(object({
-    cidr              = string
-    availability_zone = string
-  }))
+  type        = list(string)
 }
 
-variable "availability_zones" {
-  description = "Availability zone for the subnet"
-  type        = string
-}
+#variable "enable_internet_gateway" {
+#  type        = bool
+#  default     = true
+#}
 
-variable "environment" {
-  description = "env type"
-  type        = string
-}
-
-variable "vpc_name" {
-  type = string
-  description = "Name of the VPC"
+variable "tags" {
+  type        = map(string)
+  default     = {}
 }
