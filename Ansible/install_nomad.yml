@@ -1,0 +1,79 @@
+---
+- name: Set up Nomad
+  hosts: nomad_servers
+  become: true
+  tasks:
+    - name: Install required dependencies for Nomad
+      apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+      loop:
+        - unzip
+        - curl
+        - wget
+        - jq
+
+    - name: Add HashiCorp GPG key
+      apt_key:
+        url: https://apt.releases.hashicorp.com/gpg
+        state: present
+
+    - name: Add HashiCorp repository
+      apt_repository:
+        repo: "deb https://apt.releases.hashicorp.com {{ ansible_distribution_release | lower }} main"
+        state: present
+
+    - name: Install Nomad
+      apt:
+        name: nomad
+        state: present
+
+    - name: Configure Nomad
+      template:
+        src: roles/nomad/templates/nomad_config.hcl.j2
+        dest: /etc/nomad.d/nomad.hcl
+        mode: '0644'
+
+    - name: Enable and start Nomad service
+      systemd:
+        name: nomad
+        enabled: true
+        state: started
+
+
+------------------
+- name: Start Nomad agent
+  command: nomad agent -config /etc/nomad.d
+  register: nomad_status
+  daemonize: true
+  failed_when: false
+
+- name: Check if Nomad is running
+  shell: "ps aux | grep nomad | grep -v grep"
+  register: nomad_running
+  changed_when: false
+
+
+  #configuration 
+  datacenter = "dc1"
+data_dir = "/opt/nomad"
+bind_addr = "{{ ansible_default_ipv4.address }}"
+client_addr = "0.0.0.0"
+advertise {
+  http = "{{ ansible_default_ipv4.address }}:4646"
+  rpc  = "{{ ansible_default_ipv4.address }}:4647"
+  serf = "{{ ansible_default_ipv4.address }}:4648"
+}
+
+server {
+  enabled = true
+  bootstrap_expect = 3
+}
+
+# Enable ACLs for security
+acl {
+  enabled = true
+  default_policy = "deny"
+  enable_token_persistence = true
+}

@@ -7,14 +7,14 @@ resource "aws_security_group" "jenkins_sg" {
     from_port   = 8080
     to_port     = 8080
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # Відкриваємо порт для Jenkins Web UI
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # SSH доступ до Jenkins
+    cidr_blocks = ["0.0.0.0/0"] 
   }
 
   ingress {
@@ -40,7 +40,7 @@ resource "aws_instance" "jenkins_server" {
   ami           = var.jenkins_server_ami
   instance_type = var.jenkins_server_instance_type
   subnet_id     = module.on_prem.private_subnet_ids[0]
-  security_groups = [aws_security_group.jenkins_sg.name]
+  vpc_security_group_ids = [aws_security_group.jenkins_sg.name]
 
   user_data = <<-EOF
               #!/bin/bash

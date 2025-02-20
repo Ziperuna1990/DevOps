@@ -25,4 +25,5 @@ backend_server_ami = "ami-0f9575d3d509bae0c"
 backend_instance_type = "t2.micro"
 backend_instance_name = "backend_server"
 
+rds_name = "cloud-postgress-db"
 #env = "qa"

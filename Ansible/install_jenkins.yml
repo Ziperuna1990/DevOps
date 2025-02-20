@@ -1,0 +1,54 @@
+---
+- name: Install and configure Jenkins
+  hosts: jenkins_servers
+  become: yes
+  tasks:
+
+    - name: Install Java (required for Jenkins)
+      apt:
+        name: openjdk-11-jdk
+        state: present
+        update_cache: yes
+
+    - name: Add Jenkins repository key
+      apt_key:
+        url: https://pkg.jenkins.io/jenkins.io.key
+        state: present
+
+    - name: Add Jenkins repository
+      apt_repository:
+        repo: "deb http://pkg.jenkins.io/debian/ jenkins.io"
+        state: present
+
+    - name: Install Jenkins
+      apt:
+        name: jenkins
+        state: present
+        update_cache: yes
+
+    - name: Start Jenkins service
+      systemd:
+        name: jenkins
+        state: started
+        enabled: yes
+
+    - name: Open port 8080 in firewall (if using ufw)
+      ufw:
+        rule: allow
+        name: 'Jenkins'
+        port: '8080'
+        proto: tcp
+
+    - name: Ensure Jenkins is running
+      systemd:
+        name: jenkins
+        state: started
+        enabled: yes
+
+    - name: Get Jenkins unlock key
+      shell: cat /var/lib/jenkins/secrets/initialAdminPassword
+      register: jenkins_unlock_key
+
+    - name: Print Jenkins unlock key
+      debug:
+        msg: "Jenkins unlock key is {{ jenkins_unlock_key.stdout }}"

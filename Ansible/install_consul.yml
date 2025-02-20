@@ -1,0 +1,68 @@
+---
+- name: Set up Consul
+  hosts: consul_servers
+  become: true
+  tasks:
+    - name: Install required dependencies for Consul
+      apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+      loop:
+        - unzip
+        - curl
+        - wget
+        - jq
+
+    - name: Add HashiCorp GPG key
+      apt_key:
+        url: https://apt.releases.hashicorp.com/gpg
+        state: present
+
+    - name: Add HashiCorp repository
+      apt_repository:
+        repo: "deb https://apt.releases.hashicorp.com {{ ansible_distribution_release | lower }} main"
+        state: present
+
+    - name: Install Consul
+      apt:
+        name: consul
+        state: present
+
+    - name: Configure Consul
+      template:
+        src: roles/consul/templates/consul_config.hcl.j2
+        dest: /etc/consul.d/consul.hcl
+        mode: '0644'
+
+    - name: Enable and start Consul service
+      systemd:
+        name: consul
+        enabled: true
+        state: started
+
+------------------
+
+---
+- name: Start Consul agent
+  command: consul agent -config-dir=/etc/consul.d
+  register: consul_status
+  daemonize: true
+  failed_when: false
+
+- name: Check if Consul is running
+  shell: "ps aux | grep consul | grep -v grep"
+  register: consul_running
+  changed_when: false
+
+
+#config
+
+server = true
+ui = true
+bootstrap_expect = 3
+data_dir = "/opt/consul"
+bind_addr = "{{ ansible_default_ipv4.address }}"
+client_addr = "0.0.0.0"
+advertise_addr = "{{ ansible_default_ipv4.address }}"
+retry_join = ["provider=aws tag_key=Name tag_value=consul-server"]

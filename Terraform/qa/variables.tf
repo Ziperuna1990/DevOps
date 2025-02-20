@@ -65,6 +65,10 @@ variable "jenkins_server_instance_name" {
   description = "instance name"
 }
 
+variable "rds_name" {
+  type = string
+}
+
 #variable "env" {
 #  type = string
 #  description = "ENV"  
