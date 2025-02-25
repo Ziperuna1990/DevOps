@@ -1,0 +1,70 @@
+pipeline {
+    agent {
+        docker {
+            image 'gradle:8.4.0-jdk11-alpine' 
+            label 'ecs'
+        }
+    }
+
+    environment {
+        ECR_REGISTRY = "548760365095.dkr.ecr.eu-west-1.amazonaws.com"
+        IMAGE_NAME = "cca/yaml-verificator"
+        AWS_REGION = "eu-west-1"
+    }
+
+    stages {
+        stage("Build") {
+            steps {
+                script {
+                    if (GIT_BRANCH == 'origin/master') {
+                        updateGitlabCommitStatus(name: 'jenkins-build', state: 'running')
+                    } else {
+                        sh "./gradlew clean build"
+                    }
+                }
+            }
+            post {
+                success {
+                    script {
+                        if (GIT_BRANCH == 'origin/master') {
+                            updateGitlabCommitStatus(name: 'jenkins-build', state: 'success')
+                        }
+                    }
+                }
+                failure {
+                    script {
+                        if (GIT_BRANCH == 'origin/master') { 
+                            updateGitlabCommitStatus(name: 'jenkins-build', state: 'failed')
+                        }
+                    }
+                }
+            }
+        }
+
+        stage("Docker") {
+            steps {
+                script {
+                    if (GIT_BRANCH == 'origin/master') {
+                        sh """
+                        sudo yum install docker -y || true
+                        sudo systemctl start docker || true
+                        \$(aws ecr get-login-password --region ${AWS_REGION} | sudo docker login --username AWS --password-stdin ${ECR_REGISTRY})
+                        sudo docker build . -t ${ECR_REGISTRY}/${IMAGE_NAME}:latest
+                        sudo docker push ${ECR_REGISTRY}/${IMAGE_NAME}:latest
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        aborted {
+            script {
+                updateGitlabCommitStatus(name: 'jenkins-build', state: 'aborted')
+            }
+        }
+    }
+}
+
+

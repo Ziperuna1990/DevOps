@@ -1,11 +1,22 @@
-FROM python:3.9-slim
+FROM 548760365095.dkr.ecr.eu-west-1.amazonaws.com/base-images/java:11-jdk-alpine-default
+
+# Встановлення необхідних пакетів
+RUN apk add --no-cache \
+    gradle \
+    docker-cli \
+    aws-cli \
+    bash \
+    git
+
+# Встановлення Gradle вручну (остання стабільна версія)
+ENV GRADLE_VERSION=8.4
+RUN wget -q https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip \
+    && unzip gradle-${GRADLE_VERSION}-bin.zip -d /opt/ \
+    && rm gradle-${GRADLE_VERSION}-bin.zip
+
+ENV PATH="/opt/gradle-${GRADLE_VERSION}/bin:$PATH"
 
 WORKDIR /app
+COPY . .
 
-COPY . /app
-
-RUN pip install --no-cache-dir -r requirements.txt
-
-EXPOSE 5000
-
-CMD ["python", "app.py"]
+CMD ["gradle", "--version"]
